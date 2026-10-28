@@ -530,6 +530,37 @@ class ProductRFRSwap(Product):
         self.compounding_method_ = compounding_method
 
         #TODO
+        # Both legs share the swap's dates, notional, currency and payment conventions.
+        # The accrual schedule follows the overnight index's fixing calendar (template style).
+        schedule_holidays = HolidayConvention(self.on_index_.fixingCalendar().name())
+        common = dict(
+            effective_date=self.effective_date_,
+            termination_date=self.termination_date_,
+            notional=self.notional_,
+            currency=self.currency_,
+            accrual_basis=self.accrual_basis_,
+            business_day_convention=self.pay_business_day_convention_,
+            holiday_convention=schedule_holidays,
+            payment_offset=self.pay_offset_,
+            payment_business_day_convention=self.pay_business_day_convention_,
+            payment_holiday_convention=self.pay_holiday_convention_,
+        )
+        # Fixed leg: pays N * K * alpha on each fixed accrual period.
+        self.fixed_leg_ = InterestRateStream(
+            **common,
+            accrual_period=self.accrual_period_,
+            fixed_rate=self.fixed_rate_,
+        )
+        # Floating leg: compounded overnight index (+ spread) on each floating accrual period.
+        self.floating_leg_ = InterestRateStream(
+            **common,
+            accrual_period=self.floating_leg_accrual_period_,
+            float_index=self.on_index_str_,
+            is_on_index=True,
+            ois_compounding=self.compounding_method_,
+            ois_spread=self.spread_,
+            fixing_in_arrear=True,
+        )
 
         last_dt_fixed = self.fixed_leg_.last_date
         last_dt_floating = self.floating_leg_.last_date
@@ -728,6 +759,48 @@ class ProductOvernightIndexBasisSwap(Product):
         self.floating_leg_1_basis_ = None
         self.floating_leg_1_wo_basis_ = None
         #TODO
+
+        self.floating_leg_1_basis_ = None
+        self.floating_leg_1_wo_basis_ = None
+        #TODO
+        # Leg 1: overnight index 1 compounded, plus the basis spread (added outside compounding).
+        self.floating_leg_1_ = InterestRateStream(
+            effective_date=self.effective_date_,
+            termination_date=self.termination_date_,
+            accrual_period=self.accrual_period_1_,
+            notional=self.notional_,
+            currency=self.currency_,
+            accrual_basis=self.accrual_basis_,
+            business_day_convention=self.pay_business_day_convention_,
+            holiday_convention=HolidayConvention(self.on_index_1_.fixingCalendar().name()),
+            float_index=self.on_index_str_1_,
+            is_on_index=True,
+            ois_compounding=self.compounding_method_,
+            ois_spread=self.spread_,
+            fixing_in_arrear=True,
+            payment_offset=self.pay_offset_,
+            payment_business_day_convention=self.pay_business_day_convention_,
+            payment_holiday_convention=self.pay_holiday_convention_,
+        )
+        # Leg 2: overnight index 2 compounded, no spread.
+        self.floating_leg_2_ = InterestRateStream(
+            effective_date=self.effective_date_,
+            termination_date=self.termination_date_,
+            accrual_period=self.accrual_period_2_,
+            notional=self.notional_,
+            currency=self.currency_,
+            accrual_basis=self.accrual_basis_,
+            business_day_convention=self.pay_business_day_convention_,
+            holiday_convention=HolidayConvention(self.on_index_2_.fixingCalendar().name()),
+            float_index=self.on_index_str_2_,
+            is_on_index=True,
+            ois_compounding=self.compounding_method_,
+            ois_spread=0.0,
+            fixing_in_arrear=True,
+            payment_offset=self.pay_offset_,
+            payment_business_day_convention=self.pay_business_day_convention_,
+            payment_holiday_convention=self.pay_holiday_convention_,
+        )
 
         last_dt_floating_1 = self.floating_leg_1_.last_date
         last_dt_floating_2 = self.floating_leg_2_.last_date
